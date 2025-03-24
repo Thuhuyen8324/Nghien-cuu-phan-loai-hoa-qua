@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhận diện Hoa Quả - YOLO</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Dùng flexbox để chia trang thành 2 cột (bên trái, bên phải) */
+        .container {
+            display: flex;
+            flex-direction: row;
+            min-height: 100vh; /* cho toàn trang cao 100% viewport */
+        }
+
+        /* Cột bên trái (thông tin) */
+        .info-panel {
+            width: 300px;       /* Độ rộng cột bên trái */
+            padding: 20px;
+            background-color: #2c2c2c; /* Màu nền có thể tùy chỉnh */
+        }
+        .info-panel h1 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .info-panel .info-item {
+            margin: 10px 0;
+        }
+
+        /* Cột bên phải (video) */
+        .video-panel {
+            flex: 1;            /* Phần này sẽ tự giãn ra hết chiều rộng còn lại */
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Khung viền cho video/camera feed */
+        .video-panel img {
+            border: 2px solid white;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Vùng hiển thị cảnh báo */
+        #alert {
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none; /* Mặc định ẩn đi */
+        }
+        .safe {
+            color: #00ff00; /* xanh lá cho an toàn */
+        }
+        .danger {
+            color: #ff0000; /* đỏ cho nguy hiểm */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CỘT BÊN TRÁI: THÔNG TIN & CẢNH BÁO -->
+        <div class="info-panel">
+            <h1>Hệ Thống Nhận Diện Hoa Quả</h1>
+
+            <!-- Ví dụ hiển thị FPS, trạng thái camera -->
+            <div class="info-item">
+                <strong>FPS:</strong> <span id="fpsValue">-</span>
+            </div>
+            <div class="info-item">
+                <strong>Trạng thái camera:</strong> <span id="camStatus">Đang kiểm tra...</span>
+            </div>
+
+
+            <!-- Vùng hiển thị cảnh báo -->
+            <div id="alert">Cảnh báo: Hoa quả hỏng được phát hiện!</div>
+        </div>
+
+        <!-- CỘT BÊN PHẢI: VIDEO FEED -->
+        <div class="video-panel">
+            <img src="{{ url_for('video_feed') }}" alt="Video Feed" id="cameraFeed">
+        </div>
+    </div>
+
+    <script>
+        // Hàm kiểm tra cảnh báo (hoa quả hỏng)
+        function checkAlert() {
+            fetch('/alert_status')
+                .then(response => response.json())
+                .then(data => {
+                    let alertDiv = document.getElementById("alert");
+                    let rottenCountSpan = document.getElementById("rottenCount");
+
+                    // Giả sử server trả về JSON dạng:
+                    // {
+                    //   "alert": true/false,
+                    //   "message": "Nội dung cảnh báo",
+                    //   "count": số_lượng_hoa_quả_hỏng
+                    // }
+
+                    if (data.alert) {
+                        alertDiv.innerHTML = " " + data.message + " ";
+                        alertDiv.className = "danger";
+                        alertDiv.style.display = "block";
+                    } else {
+                        alertDiv.innerHTML = "Không phát hiện hoa quả hỏng";
+                        alertDiv.className = "safe";
+                        alertDiv.style.display = "block";
+                    }
+
+                    // Cập nhật số lượng hoa quả hỏng
+                    
+                })
+                .catch(err => {
+                    console.log("Lỗi khi lấy alert_status:", err);
+                });
+        }
+
+        // Hàm cập nhật FPS và trạng thái camera (nếu bạn có API riêng)
+        function updateInfo() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    // Giả sử API trả về { fps: xx, camStatus: true/false }
+                    document.getElementById('fpsValue').innerText = data.fps || "-";
+                    document.getElementById('camStatus').innerText = data.camStatus
+                        ? "Camera hoạt động tốt"
+                        : "Camera hỏng";
+                })
+                .catch(err => {
+                    console.log("Lỗi khi lấy status:", err);
+                });
+        }
+
+        // Gọi 2 hàm trên định kỳ
+        setInterval(() => {
+            checkAlert();
+            updateInfo();
+        }, 1000);
+    </script>
+</body>
+</html>
